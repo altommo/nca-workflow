@@ -1,0 +1,429 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        100
+      ],
+      "id": "b27757a5-5147-4541-8b5c-b5b9276754db",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "command": "=node /home/n8n/localParser.js  {{ $json.fileName }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        420,
+        380
+      ],
+      "id": "65ca90ce-5702-496c-9178-5dba23fc7da4",
+      "name": "Execute Command",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f31f8e1e-91b1-4797-81e0-cea8bb0548e9",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "68770575-40df-4eec-9bd1-eb593f50df41",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "124732b6-872a-4dbb-9bcb-b50b78106ecb",
+              "name": "intro",
+              "value": "={{ $json.intro }}",
+              "type": "string"
+            },
+            {
+              "id": "1eb39009-1007-4e25-8941-f7332392f8da",
+              "name": "date",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "58df2cac-5984-4a30-a968-e117e870bd1f",
+              "name": "imageUrl",
+              "value": "={{ $json.imageUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "5ff38f6d-f585-45cd-9d4f-d2e39163f98d",
+              "name": "category",
+              "value": "={{ $json.category }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        600,
+        100
+      ],
+      "id": "0b1a27e7-4300-4d28-9533-54dc24da48ff",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// For each item, convert the text HTML (in the body field) to a binary property\nitems.forEach(item => {\n  const htmlContent = $input.first().json.data;\n  if (!htmlContent) {\n    throw new Error(\"No HTML content found in 'body'\");\n  }\n  \n  // Create a new binary property 'data'\n  item.binary = {\n    data: {\n      data: Buffer.from(htmlContent, 'utf8').toString('base64'),\n      mimeType: 'text/html',\n      fileName: 'htmlOutput.html'\n    }\n  };\n});\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        100
+      ],
+      "id": "df5dc4b8-9642-4ec8-b38b-84f95fd1257c",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/home/n8n/htmlOutput.html",
+        "dataPropertyName": "=data",
+        "options": {
+          "append": false
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        420,
+        240
+      ],
+      "id": "03fc308c-4ecc-4707-ace4-59dfa5642d42",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "url": "https://www.nationalcrimeagency.gov.uk/news/all-news",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        100
+      ],
+      "id": "7031151d-064e-4623-8563-17b8f3c7942f",
+      "name": "HTTP Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Assume $json.stdout might contain extra text before the JSON\nlet stdout = $json.stdout;\n// Use a regex to find the first curly brace that starts the JSON\nconst jsonStart = stdout.indexOf('{');\nif (jsonStart === -1) {\n    throw new Error(\"No JSON found in stdout\");\n}\nconst jsonString = stdout.substring(jsonStart);\nconst parsed = JSON.parse(jsonString);\n// Map each article to a new item with proper keys (assuming articles is an array)\nreturn parsed.articles.map(article => {\n  return {\n    json: {\n      // Extract all available fields from the article object\n      title: article.title || '',\n      url: article.url || '',\n      intro: article.intro || '',\n      date: article.date || '',\n      imageUrl: article.imageUrl || '',\n      category: article.category || '',\n      content: article.content || '',\n      \n      // Include any other fields that might exist\n      allImages: article.allImages || [],\n      videoUrls: article.videoUrls || [],\n      tags: article.tags || [],\n      author: article.author || '',\n      \n      // Add processing metadata\n      source: article.source || '',\n      processedAt: article.processedAt || new Date().toISOString()\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        520
+      ],
+      "id": "36df5ede-0356-430d-a9fa-ae406ca60a62",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "url": "= {{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        240
+      ],
+      "id": "07f3bf89-267c-407f-a7dc-27b953e7c994",
+      "name": "HTTP Request1",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "=node ~/localFullArticleParser.js /home/n8n/gpu_input_articles /home/n8n/ProcessedArticles/"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        760,
+        100
+      ],
+      "id": "4fd6e91a-17bb-4bb5-a549-d4a23b73e768",
+      "name": "Full article parser1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $json.filePath }}",
+        "dataPropertyName": "=data",
+        "options": {
+          "append": false
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        600,
+        540
+      ],
+      "id": "639484f6-a235-4f82-ac29-ec36571898ba",
+      "name": "Read/Write Files from Disk2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// For each item, convert the text HTML (in the body field) to a binary property\nconst items = $input.all();\nconst timestamp = Date.now();\nconst baseDir = '/home/n8n'; // Base directory for saved files\n\nitems.forEach((item, index) => {\n  const htmlContent = item.json.data;\n  if (!htmlContent) {\n    throw new Error(\"No HTML content found in 'data'\");\n  }\n  \n  // Create unique filename\n  const fileName = `htmlFullArticleOutput_${timestamp}_${index}.html`;\n  // Full path to the file\n  const filePath = `${baseDir}/gpu_input_articles/${fileName}`;\n  \n  // Create a new binary property 'data' with a unique, incrementing filename\n  item.binary = {\n    data: {\n      data: Buffer.from(htmlContent, 'utf8').toString('base64'),\n      mimeType: 'text/html',\n      fileName: fileName\n    }\n  };\n  \n  // Add the full file path to the JSON data for reference\n  item.json.filePath = filePath;\n});\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        400
+      ],
+      "id": "81e89933-2c19-4f77-8561-d877096658c0",
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This function processes a single input item which contains all articles\n// and converts it to multiple output items - one per unique article\n\n// Get the input which contains all articles in its stdout\nconst inputItem = $input.item;\nconst outputItems = [];\n\n// Check if we have stdout with data\nif (!inputItem || !inputItem.json || !inputItem.json.stdout) {\n  return $input;\n}\n\n// Extract the JSON from stdout\nconst stdout = inputItem.json.stdout;\n\n// Find the starting position of the JSON array\nlet jsonStart = stdout.indexOf('[');\nif (jsonStart === -1) {\n  // If no array found, try to find an object\n  jsonStart = stdout.indexOf('{');\n  if (jsonStart === -1) {\n    return $input;\n  }\n}\n\n// Find the end of the JSON data\nlet jsonString = stdout.substring(jsonStart);\nlet jsonEnd = jsonString.indexOf(\"\\nProcessed\");\n\nif (jsonEnd === -1) {\n  // Try to find the end of the JSON structure\n  let openBrackets = 0;\n  let inString = false;\n  let escape = false;\n  \n  for (let i = 0; i < jsonString.length; i++) {\n    const char = jsonString[i];\n    \n    if (inString) {\n      if (escape) {\n        escape = false;\n      } else if (char === '\\\\') {\n        escape = true;\n      } else if (char === '\"') {\n        inString = false;\n      }\n    } else if (char === '\"') {\n      inString = true;\n    } else if (char === '[' || char === '{') {\n      openBrackets++;\n    } else if (char === ']' || char === '}') {\n      openBrackets--;\n      if (openBrackets === 0) {\n        jsonEnd = i + 1;\n        break;\n      }\n    }\n  }\n}\n\n// Extract the JSON part\nif (jsonEnd !== -1) {\n  jsonString = jsonString.substring(0, jsonEnd);\n}\n\ntry {\n  // Parse the JSON\n  const parsed = JSON.parse(jsonString);\n  \n  // Make sure we have an array of articles\n  const articles = Array.isArray(parsed) ? parsed : [parsed];\n  \n  // Use a Map to track unique titles to avoid duplicates\n  const uniqueTitles = new Map();\n  \n  // Process each article into a separate output item\n  articles.forEach((article, index) => {\n    // Skip duplicates (same title)\n    if (uniqueTitles.has(article.title)) {\n      return;\n    }\n    \n    // Store this title as processed\n    uniqueTitles.set(article.title, true);\n    \n    // Create a new item with the article data\n    // Use the input item's metadata if it exists\n    if (article.title === inputItem.json.title) {\n      // For the current article, use the existing metadata\n      outputItems.push({\n        json: {\n          title: inputItem.json.title || article.title || '',\n          url: inputItem.json.url || '',\n          intro: inputItem.json.intro || '',\n          date: inputItem.json.date || '',\n          imageUrl: inputItem.json.imageUrl || '',\n          category: inputItem.json.category || '',\n          content: article.content || '',\n          source: article.source || '',\n          processedAt: article.processedAt || new Date().toISOString(),\n          locations: Array.isArray(article.locations) ? article.locations.join(', ') : '',\n          organizations: Array.isArray(article.organizations) ? article.organizations.join(', ') : '',\n          timeline: Array.isArray(article.timeline) ? article.timeline.join(', ') : '',\n          perpetrators: Array.isArray(article.perpetrators) ? article.perpetrators.join(', ') : '',\n          sentences: Array.isArray(article.sentences) ? article.sentences.join('; ') : '',\n          charges: Array.isArray(article.charges) ? article.charges.join('; ') : '',\n          moneyAmounts: Array.isArray(article.moneyAmounts) ? \n            article.moneyAmounts.map(m => `${m.original || ''} (${m.formatted || ''})`).join(', ') : '',\n          drugQuantities: Array.isArray(article.drugQuantities) ? \n            article.drugQuantities.map(d => `${d.original || ''} (${d.kgEquivalent || ''}kg)`).join(', ') : '',\n          fullArticleData: article\n        }\n      });\n    } else {\n      // For other articles, use just the article data\n      outputItems.push({\n        json: {\n          title: article.title || '',\n          url: article.url || '', // This will now use the URL from your parser\n          intro: article.intro || '', // This will use the intro from your parser\n          date: article.date || '', // This will use the date from your parser\n          imageUrl: article.imageUrl || '', // This will use the image URL from your parser\n          category: Array.isArray(article.categories) ? article.categories.join(', ') : '', \n          content: article.content || '',\n          source: article.source || '',\n          processedAt: article.processedAt || new Date().toISOString(),\n          locations: Array.isArray(article.locations) ? article.locations.join(', ') : '',\n          organizations: Array.isArray(article.organizations) ? article.organizations.join(', ') : '',\n          timeline: Array.isArray(article.timeline) ? article.timeline.join(', ') : '',\n          perpetrators: Array.isArray(article.perpetrators) ? article.perpetrators.join(', ') : '',\n          sentences: Array.isArray(article.sentences) ? article.sentences.join('; ') : '',\n          charges: Array.isArray(article.charges) ? article.charges.join('; ') : '',\n          moneyAmounts: Array.isArray(article.moneyAmounts) ? \n            article.moneyAmounts.map(m => `${m.original || ''} (${m.formatted || ''})`).join(', ') : '',\n          drugQuantities: Array.isArray(article.drugQuantities) ? \n            article.drugQuantities.map(d => `${d.original || ''} (${d.kgEquivalent || ''}kg)`).join(', ') : '',\n          fullArticleData: article\n        }\n      });\n    }\n  });\n  \n  // Return all the items\n  return outputItems;\n  \n} catch (error) {\n  // Return the original input if we can't parse the JSON\n  return [{\n    json: {\n      ...inputItem.json,\n      parsingError: true,\n      errorMessage: error.message\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        380
+      ],
+      "id": "ae9d1722-c747-4ba1-bb75-2cf9e91a59cf",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        760,
+        240
+      ],
+      "id": "17a769e2-f065-4a0f-b7e4-4707d891dcf6",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/n8n/ProcessedArticles/report.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        760,
+        520
+      ],
+      "id": "42816cd0-73e7-4c7e-a39f-d5b83ee3d9bd",
+      "name": "Read/Write Files from Disk1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "Full article parser1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Full article parser1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7d5f6cee-1f74-4b32-8d8e-dfbe35bbe260",
+  "meta": {
+    "instanceId": "ba1d8d64f0014a92967f0a5dd0de8de2466e0a1476b18a0c760efd028ba589b4"
+  },
+  "id": "sfxZGrQd1ScD2MhZ",
+  "tags": []
+}
